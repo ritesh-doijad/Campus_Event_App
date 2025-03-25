@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { useDispatch } from 'react-redux'
 import axios from 'axios'
 import { toast } from 'react-toastify'
@@ -17,14 +17,30 @@ import { activeEvents, allEvents, myOrganizedEvents } from './store/eventSlice'
 import MyTickets from './pages/MyEvents'
 import EventDetailsPage from './pages/EventDetailsPage'
 import BookingPage from './pages/BookingPage'
-import VerifyEmail from './pages/VerificationPage'
+import VerifyEmail from './pages/VerifyEmail'
 import PhotoGallery from './pages/PhotoGallery'
 import EventsOrganized from './pages/EventsOrganized'
-import CSECommittee from './pages/CommitteePage'
+import CSECommittee from './pages/committee/CSECommittee'
 import VerifyTickets from './pages/VerifyTickets'
 import TicketStatusChangingPage from './pages/TicketStatusChangingPage'
 import { VscLoading } from 'react-icons/vsc'
 import OrganizersComponent from './components/OrganizersComponent'
+import LoginForm from './components/LoginForm'
+import RegisterForm from './components/RegisterForm'
+import PageNotFound from './components/utils/PageNotFound'
+import NotificationComponent from './components/utils/NotificationComponent'
+import UpdateEvent from './pages/UpdateEventCard'
+import WinnersPage from './pages/WinnersPage'
+import CivilCommittee from './pages/committee/CivilCommittePage'
+import EntcCommittee from './pages/committee/EntcCommittee'
+import MECommittee from './pages/committee/MechCommittee'
+import ElectricalCommittee from './pages/committee/ElecCommittee'
+import InstrumentationCommittee from './pages/committee/InstruCommittee'
+import { AnimatePresence } from 'framer-motion'
+import SuperAdminPanel from './pages/SuperAdminPanel'
+import ManageEvents from './components/admin-components/AdminToggle.jsx'
+import HomeComponent from './components/admin-components/HomeComponent'
+import CertificatePage from './pages/CertificatePageUser'
 
 // Loading Screen Component
 const LoadingScreen = () => (
@@ -62,10 +78,23 @@ const App = () => {
     }
   }
 
+
+// const knock = new Knock();
+
+// async function initializeKnock(userId, userToken) {
+//     try {
+//         await knock.authenticate(userId, userToken);
+//         console.log('Knock initialized successfully');
+//     } catch (error) {
+//         console.error('Error initializing Knock:', error);
+//     }
+// }
+  
+
   const fetchUserDetails = async () => {
     try {
       if (userId) {
-        const result = await axios.post(`${baseUrl}/api/user/getuser/?userid=${userId}`)
+        const result = await axios.get(`${baseUrl}/api/user/getuser/${userId}`)
         if (result.status === 200) {
           const userDetails = result.data.response
           dispatch(login(userDetails))
@@ -80,6 +109,8 @@ const App = () => {
     try {
       const result = await axios.get(`${baseUrl}/api/event/`)
       const events = result.data.response
+      console.log("Evnets:",events);
+      
       dispatch(allEvents(events))
     } catch (err) {
       toast.error(err.message || "Error fetching events")
@@ -91,6 +122,7 @@ const App = () => {
     try {
       const result = await axios.get(`${baseUrl}/api/event/active-events/${userID}`)
       const events = result.data.adminEvents
+      console.log("Active Events:",events);
       dispatch(activeEvents(events))
     } catch (err) {
       toast.error(err.message || "Error fetching active events")
@@ -113,9 +145,12 @@ const App = () => {
     const fetchData = async () => {
       if (token && userId) {
         await fetchUserDetails()
+        // const knock = new Knock(); 
+        // knock.authenticate(userId, token);
+        // initializeKnock(userId, token);
       }
       await fetchAllEvents()
-      if (userId) {
+      if (role === "admin" || role === "superadmin") {
         await fetchActiveEvents(userId)
         await fetchMyOrganizedEvents(userId)
       }
@@ -124,24 +159,35 @@ const App = () => {
     fetchData()
   }, [token, userId])
 
-  if (loading) {
-    return <LoadingScreen /> // Show loading screen while data is loading
-  }
+  // if (loading) {
+  //   return <LoadingScreen /> // Show loading screen while data is loading
+  // }
+
+const location = useLocation();
 
   return (
     <div className='fade-in' >
+      <AnimatePresence location={location} key={location.pathname}  >
+ 
     <Routes>
       <Route path='/' element={<Layout />}>
         <Route path='' element={<Home />} />
         <Route path='/eventdetails/:id' element={<EventDetailsPage />} />
         <Route path='/verify-email' element={<VerifyEmail />} />
         <Route path='/gallery' element={<PhotoGallery />} />
-        <Route path='/committeepage' element={<CSECommittee />} />
+        <Route path='/winners' element={<WinnersPage />} />
+        <Route path='/cse-committee' element={<CSECommittee />} />
+        <Route path='/civil-committe' element={<CivilCommittee />} />
+        <Route path='/elec-committee' element={<ElectricalCommittee />} />
+        <Route path='/entc-committee' element={<EntcCommittee />} />
+        <Route path='/instru-committee' element={<InstrumentationCommittee />} />
+        <Route path='/mech-committee' element={<MECommittee />} />
+        
 
         {!isAuthenticated && (
           <>
-            <Route path='/register' element={<SignUpPage />} />
-            <Route path='/login' element={<SignInPage />} />
+            <Route path='/register' element={<RegisterForm />} />
+            <Route path='/login' element={<LoginForm />} />
           </>
         )}
 
@@ -149,19 +195,27 @@ const App = () => {
           <Route path='/register' element={<Navigate to="/" />} />
           <Route path='/login' element={<Navigate to="/" />} />
           <Route path='/profile' element={<Profile />} />
+          <Route path='/certificate' element={<CertificatePage/>}/>
           <Route path='/mytickets' element={<MyTickets />} />
           <Route path='/buyticket/:id' element={<BookingPage />} />
           {(role === "admin" || role === "superadmin") && (
             <>
               <Route path='/create' element={<CreateEvent />} />
               <Route path='/organized' element={<EventsOrganized />} />
+              <Route path='/update/:id' element={<UpdateEvent />} />
               <Route path="/verifytickets" element={<VerifyTickets />} />
               <Route path="/event/:id" element={<TicketStatusChangingPage />} />
+              <Route path="superadmin" element={<SuperAdminPanel />}>
+                      <Route index element={<HomeComponent />} />
+                      <Route path="organise-events" element={<ManageEvents />} />
+                    </Route>
             </>
           )}
         </Route>
       </Route>
+    <Route path="*" element={<PageNotFound />} />
     </Routes>
+    </AnimatePresence>
     </div>
   )
 }

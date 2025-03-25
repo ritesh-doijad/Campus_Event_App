@@ -1,16 +1,20 @@
 const bcrypt = require('bcrypt');
 const userModel = require('../models/user');
+const eventModel = require('../models/event');
 const { generateToken } = require('../utils/generateToken');
 const crypto = require('crypto');
-const { sendVerificationEmail } = require('../config/email-verification');
+const { sendVerificationEmail, sendWelcomeEmail } = require('../config/email-verification');
+const { Knock }  = require("@knocklabs/node")
+const knock = new Knock(process.env.KNOCK_API_KEY);
+
 
 const generateVerificationToken = () => {
     return crypto.randomBytes(32).toString('hex');
-  };
+};
 
 const getUserDetails = async (req, res, next) => {
     try {
-        const { userid } = req.query;
+        const { userid } = req.params;
         let user = await userModel.findById(userid);
         if (!user) {
             return res.status(404).json({ status: "Error", response: "User not found" });
@@ -43,7 +47,7 @@ const getUsersByName = async (req, res, next) => {
         }
 
         // Find users based on the constructed query
-        const users = await userModel.find(query);
+        const users = await userModel.find(query, 'firstname lastname email branch yearOfStudy');
 
         if (users.length === 0) {
             return res.status(404).json({ status: "Error", response: "No users found" });
@@ -52,6 +56,94 @@ const getUsersByName = async (req, res, next) => {
         return res.status(200).json({
             status: "success",
             response: users
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+const getUserByBranch = async (req, res, next) => {
+    try {
+        // Find users based on the constructed query
+        const users = await userModel.find({branch:'CSE'}, 'firstname lastname email role image yearOfStudy');
+
+        if (users.length === 0) {
+            return res.status(404).json({ status: "Error", response: "No users found" });
+        }
+
+        return res.status(200).json({
+            status: "success",
+            response: users
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+const getParticipants = async (req, res, next) => {
+    try {
+        const { search } = req.body;
+        const { eventId } = req.params;
+
+        // Find the event by its ID and populate the participants
+        const event = await eventModel.findById(eventId).populate('participants', 'firstname lastname email branch yearOfStudy');
+
+        if (!event) {
+            return res.status(404).json({ status: "Error", response: "Event not found" });
+        }
+
+        // Create a query object to filter participants by name
+        let query = {
+            _id: { $in: event.participants.map(participant => participant.userId) }  // Only fetch users who are participants in the event
+        };
+
+        // If search parameter is present, look for participants by first name or last name
+        if (search) {
+            query.$or = [
+                { firstname: { $regex: search, $options: 'i' } },  // Case-insensitive search by first name
+                { lastname: { $regex: search, $options: 'i' } }   // Case-insensitive search by last name
+            ];
+        }
+
+        // Find the participants based on the query
+        const participants = await userModel.find(query, 'firstname lastname email branch yearOfStudy');
+
+        return res.status(200).json({
+            status: "success",
+            response: participants
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+const getAllParticipants = async (req, res, next) => {
+    try {
+        const { eventId } = req.params;
+
+        // Find the event by its ID and populate the participants
+        const event = await eventModel.findById(eventId).populate({
+            path: 'participants.userId',
+            select: 'firstname lastname email branch yearOfStudy' // Select only required fields
+        });
+
+        if (!event) {
+            return res.status(404).json({ status: "Error", response: "Event not found" });
+        }
+
+        // Map the participants to include only the necessary details
+        const participants = event.participants.map(participant => ({
+            firstname: participant.userId.firstname,
+            userId: participant.userId._id,
+            lastname: participant.userId.lastname,
+            email: participant.userId.email,
+            branch: participant.userId.branch,
+            yearOfStudy: participant.userId.yearOfStudy
+        }));
+
+        return res.status(200).json({
+            status: "success",
+            response: participants
         });
     } catch (err) {
         next(err);
@@ -80,7 +172,7 @@ const registerUser = async (req, res, next) => {
 
         // Check if user exists
         let user = await userModel.findOne({ email });
-        
+
         // If the user exists and is not verified
         if (user && !user.isVerified) {
             // Check if the verification token has expired
@@ -89,9 +181,9 @@ const registerUser = async (req, res, next) => {
                 user.verificationToken = generateVerificationToken();
                 user.tokenExpiry = Date.now() + 3600000; // 1 hour expiry
                 await user.save();
-                
+
                 // Resend the verification email
-                sendVerificationEmail(user, user.verificationToken);
+               await sendVerificationEmail(user, user.verificationToken);
                 return res.status(200).json({ status: "Success", response: "A new verification email has been sent" });
             } else {
                 return res.status(400).json({ status: "Error", response: "Please check your email for the verification link" });
@@ -105,6 +197,8 @@ const registerUser = async (req, res, next) => {
 
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
+        console.log("Plain text password:", password);
+        console.log("Hashed password:", hashedPassword);
 
         // Create new user
         let createdUser = await userModel.create({
@@ -122,18 +216,24 @@ const registerUser = async (req, res, next) => {
             tokenExpiry: Date.now() + 3600000, // 1 hour expiry
         });
 
+        await knock.users.identify(
+            createdUser._id.toString(), {
+            name: firstname + ' ' + lastname,
+            email,
+        });
+
         await createdUser.save();
 
         // Send verification email
-        sendVerificationEmail(createdUser, createdUser.verificationToken);
-    
+      await  sendVerificationEmail(createdUser, createdUser.verificationToken);
+
+    //   await sendWelcomeEmail(createdUser);
         res.status(200).json({ status: "Success", response: 'User registered. Please verify your email.' });
     } catch (err) {
         console.error(err);
         return res.status(500).json({ status: "Error", response: "An internal server error occurred" });
     }
 };
-
 
 
 const loginUser = async (req, res, next) => {
@@ -145,6 +245,8 @@ const loginUser = async (req, res, next) => {
             return res.status(403).json({ status: "Error", response: "Email or Password Incorrect" });
         }
 
+        console.log("Stored password:", user.password);
+
         if (!user.isVerified) {
             // Check if the verification token has expired
             if (Date.now() > user.tokenExpiry) {
@@ -152,8 +254,8 @@ const loginUser = async (req, res, next) => {
                 user.verificationToken = generateVerificationToken();
                 user.tokenExpiry = Date.now() + 3600000; // 1 hour expiry
                 await user.save();
-                
-                sendVerificationEmail(user, user.verificationToken);
+
+             await  sendVerificationEmail(user, user.verificationToken);
                 return res.status(400).json({ status: "Error", response: "Verification token expired. A new verification email has been sent" });
             }
 
@@ -167,6 +269,20 @@ const loginUser = async (req, res, next) => {
 
         const token = generateToken(user);
         res.cookie("token", token);
+
+        await knock.users.identify(user._id.toString(), {
+            name: user.firstname + ' ' + user.lastname,
+            email: user.email,
+        });
+
+        // await knock.objects.addSubscriptions("all-event-notification", "alleventnotification1234", {
+        //     recipients: [user._id.toString()],
+        //     properties: {
+        //       // Optionally set other properties on the subscription for each recipient
+        //     },
+        //   });
+
+        await sendWelcomeEmail(user)
 
         return res.status(200).json({
             status: "Success",
@@ -195,7 +311,7 @@ const resendVerificationEmail = async (req, res, next) => {
         user.tokenExpiry = Date.now() + 3600000; // 1 hour expiry
         await user.save();
 
-        sendVerificationEmail(user, user.verificationToken);
+       await sendVerificationEmail(user, user.verificationToken);
         res.status(200).json({ status: "Success", response: "Verification email resent" });
     } catch (err) {
         next(err);
@@ -205,48 +321,63 @@ const resendVerificationEmail = async (req, res, next) => {
 const googleLogin = async (req, res, next) => {
     try {
         const { email, firstname, lastname, image } = req.body;
-// console.log("google server data: ",req.body);
 
         // Find user by email in the database
         const user = await userModel.findOne({ email });
 
         if (user) {
-            // If the user exists, generate a token for login
+            // Ensure user is marked as verified if logging in with Google
+            if (!user.isVerified) {
+                user.isVerified = true;
+                await user.save();
+            }
+
             const token = generateToken(user);
             res.cookie("token", token);
             const { password, ...userData } = user._doc; // Exclude password when sending user data
-            res.status(200).json({
+            return res.status(200).json({
                 status: "Success",
-                response: { user:userData, token }})
+                response: { user: userData, token },
+            });
         } else {
-            // If the user doesn't exist, create a new one
-            const generatedPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
-            const hashedPassword = await bcrypt.hash(generatedPassword, 10);
-
-            // Create a new user object
-            const newUser = userModel({
+            // If the user doesn't exist, create a new one with isVerified: true
+            const newUser = new userModel({
                 firstname,
                 lastname,
                 email,
-                password: hashedPassword,
+                password: null, // No password for Google login
                 image,
                 branch: '',
                 yearOfStudy: '',
                 interests: [],
-                contact: ''
+                contact: '',
+                isVerified: true, // Google users are automatically verified
             });
 
             await newUser.save();
+
+            // Identify the user with Knock (optional)
+            await knock.users.identify(newUser._id.toString(), {
+                name: `${firstname} ${lastname}`,
+                email,
+            });
+
+            // Send a welcome email
+            await sendWelcomeEmail(newUser);
+
             const token = generateToken(newUser);
             res.cookie("token", token);
             const { password, ...userData } = newUser._doc; // Exclude password when sending user data
-            res.status(201)
-                .json({ user: userData, token });
+            return res.status(201).json({
+                user: userData,
+                token,
+            });
         }
     } catch (error) {
         next(error); // Pass the error to the error-handling middleware
     }
 };
+
 
 
 const updateUserRole = async (req, res) => {
@@ -261,11 +392,9 @@ const updateUserRole = async (req, res) => {
         return res.status(403).json({ message: "Error updating user role", error: err.message });
     }
 };
-
 const userUpdate = async (req, res, next) => {
     try {
         let {
-
             firstname,
             lastname,
             email,
@@ -275,34 +404,50 @@ const userUpdate = async (req, res, next) => {
             interests,
             role,
             myevents,
+            image,
             contact
         } = req.body;
 
+        // Find the existing user
+        let existingUser = await userModel.findById(req.params.id);
+        if (!existingUser) {
+            return res.status(404).json({ status: "Error", response: "User not found" });
+        }
+
+        // Prevent superadmin from updating branch
+        if (existingUser.role === "superadmin" && branch) {
+            return res.status(403).json({ status: "Error", response: "Superadmin cannot update branch" });
+        }
+
+        // Prepare updated data
         let updatedData = {
-            firstname,
-            lastname,
-            email,
-            branch,
-            yearOfStudy,
-            interests,
-            role,
-            myevents,
-            contact
+            firstname: firstname || existingUser.firstname,
+            lastname: lastname || existingUser.lastname,
+            email: email || existingUser.email,
+            yearOfStudy: yearOfStudy || existingUser.yearOfStudy,
+            interests: interests || existingUser.interests,
+            role: role || existingUser.role,
+            image: image || existingUser.image,  // Ensure image is updated
+            myevents: myevents || existingUser.myevents,
+            contact: contact || existingUser.contact
         };
 
+        // Hash password only if it's provided
         if (password) {
             updatedData.password = await bcrypt.hash(password, 10);
         }
 
-        let updatedUser = await userModel.findByIdAndUpdate(req.params.id, updatedData, { new: true });
-
-        if (!updatedUser) {
-            return res.status(403).json({ status: "Error", response: "User not found" });
+        // Only update branch if the user is not a superadmin
+        if (existingUser.role !== "superadmin") {
+            updatedData.branch = branch || existingUser.branch;
         }
+
+        // Update user in the database
+        let updatedUser = await userModel.findByIdAndUpdate(req.params.id, updatedData, { new: true });
 
         return res.status(200).json({
             status: "success",
-            response: "User Details Updated"
+            response: updatedUser  // Send updated user back to frontend
         });
     } catch (err) {
         next(err);
@@ -319,17 +464,18 @@ const addOrganisedEvent = async (req, res) => {
     }
 };
 
-// const addMyEvent = async (req, res) => {
-//     const {userId, eventId, paymentImage } = req.body;
-//     console.log(req.body);
 
-//     try {
-//       await userModel.findByIdAndUpdate(userId, { $push: { myevents: {eventId:eventId, paymentScreenshot:paymentImage} } });
-//       res.status(200).json({ message: "Event added to user's events" });
-//     } catch (err) {
-//       res.status(500).json({ message: "Failed to update user's events", error: err });
-//     }
-// };
+const addMyEvent = async (req, res) => {
+    const { userId, eventId, paymentImage } = req.body;
+    console.log(req.body);
+
+    try {
+        await userModel.findByIdAndUpdate(userId, { $push: { myevents: { eventId: eventId, paymentScreenshot: paymentImage } } });
+        res.status(200).json({ message: "Event added to user's events" });
+    } catch (err) {
+        res.status(500).json({ message: "Failed to update user's events", error: err });
+    }
+};
 
 
 const deleteUser = async (req, res) => {
@@ -345,4 +491,4 @@ const deleteUser = async (req, res) => {
 };
 
 
-module.exports = {getUsersByName,getUserDetails,registerUser,loginUser,googleLogin,updateUserRole,userUpdate,addOrganisedEvent,deleteUser,resendVerificationEmail}
+module.exports = { getAllParticipants,getParticipants,getUsersByName, getUserDetails, registerUser, loginUser, googleLogin, updateUserRole, userUpdate, addOrganisedEvent, deleteUser, resendVerificationEmail, addMyEvent,getUserByBranch }

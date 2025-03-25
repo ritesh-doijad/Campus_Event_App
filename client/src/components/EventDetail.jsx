@@ -8,14 +8,15 @@ import {
 import { MapPin, Calendar, Clock, Plus, ArrowLeft, IndianRupee } from "lucide-react";
 import { useSelector } from "react-redux";
 import { useNavigate, useParams } from "react-router-dom";
-import Organizer from "./Organizer";
-import Marquee from "react-fast-marquee";
 import { useCallback, useEffect, useState } from "react";
 import TicketBooking from "./OpenTicket";
 import { toast } from "react-toastify";
 import { ChevronDown, ChevronUp } from "lucide-react"
 import { CoordinatorProvider } from "@/hooks/useCoordinator";
 import OrganizerCard from "./utils/OrganizerCard";
+import RelatedEvents from "./RelatedEvents";
+import { motion } from "framer-motion";
+import BreadCrumb from "./utils/BreadCrumb";
 
 export default function EventDetails() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -43,7 +44,22 @@ export default function EventDetails() {
       <h1 className="text-5xl font-bold text-white leading-tight">
         {eventDetails?.title}
       </h1>
-      <p className="text-xl text-white/90">Organized By {eventDetails?.organizingBranch}</p>
+      <p className="text-xl text-white/90">
+      Organized By{" "}
+            {eventDetails?.organizingBranch === "CSE"
+              ? "Department of Computer Science and Engineering"
+              : eventDetails?.organizingBranch === "ENTC"
+              ? "Department of Electronics and Telecommunication Engineering"
+              : eventDetails?.organizingBranch === "CE"
+              ? "Department of Civil Engineering"
+              : eventDetails?.organizingBranch === "ME"
+              ? "Department of Mechanical Engineering"
+              : eventDetails?.organizingBranch === "IE"
+              ? "Department of Instrumentation Engineering"
+              : eventDetails?.organizingBranch === "EE"
+              ? "Department of Electrical Engineering"
+              : eventDetails?.organizingBranch}
+      </p>
       <p className="text-base text-white/80">{eventDetails?.venue}</p>
       <Button
         variant="outline"
@@ -59,18 +75,29 @@ export default function EventDetails() {
       <div className="p-6 space-y-4">
         <EventDateTime />
         <Button
-          onClick={handleBookNow}
-          className="w-full bg-gray-900 hover:bg-gray-700 text-white transition-colors"
-        >
-          Book Now ({String(eventDetails?.price) === '0' || eventDetails?.price === '' ? (
-                <span className="">FREE</span>
-              ) : (
-                <span className="flex items-center">
-                  <IndianRupee className="w-3 h-3" strokeWidth={3} />
-                  {eventDetails?.price}
-                </span>
-              )})
-        </Button>
+  onClick={handleBookNow}
+  disabled={user?.myevents?.some(event => event.eventId === eventDetails?._id)}
+  className={`w-full text-white transition-colors ${
+    user?.myevents?.some(event => event.eventId === eventDetails?._id)
+      ? 'bg-gray-500 cursor-not-allowed' // Disabled styling
+      : 'bg-gray-900 hover:bg-gray-700' // Normal styling
+  }`}
+>
+  {user?.myevents?.some(event => event.eventId === eventDetails?._id) ? (
+    "Already Participated"
+  ) : (
+    <>
+      Book Now ({String(eventDetails?.price) === '0' || eventDetails?.price === '' ? (
+        <span className="">FREE</span>
+      ) : (
+        <span className="flex items-center">
+          <IndianRupee className="w-3 h-3" strokeWidth={3} />
+          {eventDetails?.price}
+        </span>
+      )})
+    </>
+  )}
+</Button>
 
         <p className="text-sm text-gray-500 text-center">No Refunds</p>
       </div>
@@ -166,7 +193,8 @@ export default function EventDetails() {
       setOrganizerAndCoordinator(
         eventDetails.coordinator,
       );
-      console.log("Organizers and Coordinators: ",organizerAndCoordinator);
+      // console.log("Organizers and Coordinators: ",eventDetails.coordinator);
+      // console.log("Event : ",eventDetails);
       
     }
   }, [eventDetails]);
@@ -174,16 +202,25 @@ export default function EventDetails() {
   const handleBookNow = () => {
     if (!user) {
       // If user is not logged in, redirect to the login page
-      toast.error("You Need To Login First")
+      toast.error("You Need To Login First");
+    } else if (!user.branch || !user.yearOfStudy) {
+      // If user fields like branch or yearOfStudy are empty
+      toast.error("Please complete your profile information before booking");
     } else {
-      // If user is logged in, open the ticket booking dialog
+      // If user is logged in and profile is complete, open the ticket booking dialog
       openDialog();
     }
   };
 
   return (
+    <motion.div 
+    initial={{ height: 0 }}
+    animate={{ height: "100%" }}
+    exit={{ y: window.innerHeight, transition: { duration: 0.5 } }}
+    >
     <div className="min-h-screen bg-white border-1 px-4 md:px-10 lg:px-20 py-8 shadow-lg">
       <header className=""></header>
+      <BreadCrumb name={eventDetails?.title} />
       <CoordinatorProvider>
       <TicketBooking isOpen={isDialogOpen} onClose={closeDialog} eventDetails={eventDetails}/>
       </CoordinatorProvider>
@@ -215,50 +252,74 @@ export default function EventDetails() {
           </div>
         </div>
 
-        {/* small screen layout */}
-        <div className="md:hidden">
-          <div className="relative h-64 md:h-80">
-            <div
-              style={{ backgroundImage: `url(${imageUrl})` }}
-              className="absolute inset-0 bg-cover bg-center"
-            >
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-blue-900/60 to-transparent" />
-            </div>
-
-            <div className="absolute inset-0 p-4 flex flex-col justify-end">
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2">
-                {eventDetails?.title}
-              </h2>
-              <p className="text-sm sm:text-base text-white/80">
-              Organized By {eventDetails?.organizingBranch}
-              </p>
-            </div>
-          </div>
-          <CardHeader>
-            <div className="flex items-center text-sm text-muted-foreground">
-              <MapPin className="mr-2 h-4 w-4" />
-              <p>{eventDetails?.venue}</p>
-            </div>
-          </CardHeader>
-          <CardContent className="grid gap-4">
-            <EventDateTime />
-            <Button variant="outline" className="w-full justify-start">
-              <Plus className="mr-2 h-4 w-4" /> Add to Calendar
-            </Button>
-            <div className="flex">
-              <Button
-                onClick={handleBookNow}
-                className="w-full bg-gray-900 hover:bg-gray-700 text-white transition-colors"
+        {/* small screen layout  */}
+          <div className="md:hidden">
+            <div className="relative h-64 md:h-80">
+              <div
+                style={{ backgroundImage: `url(${imageUrl})` }}
+                className="absolute inset-0 bg-cover bg-center"
               >
-                Book Now ({String(eventDetails?.price) === '0' || eventDetails?.price === '' ? (
-                <span className="">FREE</span>
-              ) : (
-                <span className="flex items-center">
-                  <IndianRupee className="w-3 h-3" strokeWidth={3} />
-                  {eventDetails?.price}
-                </span>
-              )})
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-blue-900/60 to-transparent" />
+              </div>
+
+              <div className="absolute inset-0 p-4 flex flex-col justify-end">
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2">
+            {eventDetails?.title}
+                </h2>
+                <p className="text-sm sm:text-base text-white/80">
+            Organized By{" "}
+            {eventDetails?.organizingBranch === "CSE"
+              ? "Department of Computer Science and Engineering"
+              : eventDetails?.organizingBranch === "ENTC"
+              ? "Department of Electronics and Telecommunication Engineering"
+              : eventDetails?.organizingBranch === "CE"
+              ? "Department of Civil Engineering"
+              : eventDetails?.organizingBranch === "ME"
+              ? "Department of Mechanical Engineering"
+              : eventDetails?.organizingBranch === "IE"
+              ? "Department of Instrumentation Engineering"
+              : eventDetails?.organizingBranch === "EE"
+              ? "Department of Electrical Engineering"
+              : eventDetails?.organizingBranch}
+                </p>
+              </div>
+            </div>
+            <CardHeader>
+              <div className="flex items-center text-sm text-muted-foreground">
+                <MapPin className="mr-2 h-4 w-4" />
+                <p>{eventDetails?.venue}</p>
+              </div>
+            </CardHeader>
+            <CardContent className="grid gap-4">
+              <EventDateTime />
+              <Button variant="outline" className="w-full justify-start">
+                <Plus className="mr-2 h-4 w-4" /> Add to Calendar
               </Button>
+              <div className="flex">
+              <Button
+          onClick={handleBookNow}
+          disabled={user?.myevents?.some(event => event.eventId === eventDetails?._id)}
+          className={`w-full text-white transition-colors ${
+            user?.myevents?.some(event => event.eventId === eventDetails?._id)
+              ? 'bg-gray-500 cursor-not-allowed' // Disabled styling
+      : 'bg-gray-900 hover:bg-gray-700' // Normal styling
+  }`}
+>
+  {user?.myevents?.some(event => event.eventId === eventDetails?._id) ? (
+    "Already Participated"
+  ) : (
+    <>
+      Book Now ({String(eventDetails?.price) === '0' || eventDetails?.price === '' ? (
+        <span className="">FREE</span>
+      ) : (
+        <span className="flex items-center">
+          <IndianRupee className="w-3 h-3" strokeWidth={3} />
+          {eventDetails?.price}
+        </span>
+      )})
+    </>
+  )}
+</Button>
               <CoordinatorProvider>
               <TicketBooking isOpen={isDialogOpen} onClose={closeDialog} eventDetails={eventDetails} />
               </CoordinatorProvider>
@@ -399,5 +460,8 @@ export default function EventDetails() {
         </div>
       </main>
     </div>
+    
+    <RelatedEvents eventDetails ={eventDetails}/>
+    </motion.div>
   );
 }

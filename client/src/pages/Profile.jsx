@@ -100,10 +100,12 @@ export default function Profile() {
         // profileImage: user.image || "default-image-url",
         interests: user.interests || [],
         email: user.email || "",
-        contact: user.contact || "90759******",
+        contact: user.contact || "",
       });
       setSelectedFilters(user.interests || []);
      setProfileImage(user.image)
+    //  console.log("Profile image:",user?.image);
+     
     }
   }, [user]);
 
@@ -113,20 +115,56 @@ export default function Profile() {
     );
   };
 
-  const change = async (e) => {
-    const newImage = await openEditor({ src: e.target.files[0], square: true });
-    if (newImage) {
-      setProfileImage(newImage?.editedImage?.getDataURL());
-      setFormData((prev) => ({
-        ...prev,
-        profileImage: newImage?.editedImage?.getDataURL(), 
-      }));
-    } else {
-      console.error("Image editor returned no image.");
-      toast.error("Image editor returned no image.")
-    }
-  };
+  const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/diayircfv/image/upload";
+  const CLOUDINARY_UPLOAD_PRESET = "user_profile";
   
+  const change = async (e) => {
+    try {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Open image editor
+        const newImage = await openEditor({ src: file, square: true });
+        if (!newImage) {
+            toast.error("Image editor returned no image.");
+            return;
+        }
+
+        // Convert edited image to Blob
+        const editedBlob = await fetch(newImage.editedImage.getDataURL()).then(res => res.blob());
+
+        // Upload to Cloudinary
+        const formData = new FormData();
+        formData.append("file", editedBlob);
+        formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+
+        toast.info("Uploading image...");
+
+        const uploadResponse = await axios.post(CLOUDINARY_URL, formData);
+        const imageUrl = uploadResponse.data.secure_url;
+
+        // console.log("Cloudinary Image URL:", imageUrl);
+
+        // Update profile image in state
+        setProfileImage(imageUrl);
+        setFormData((prev) => ({
+            ...prev,
+            image: imageUrl,
+        }));
+
+        // Dispatch Redux action
+        dispatch(updateUserInfo({ ...user, image: imageUrl }));
+
+        toast.success("Profile image updated!");
+
+        // **Call update API after setting the image**
+        handleUpdateUserInfo(imageUrl);
+    } catch (error) {
+        console.error("Error uploading image:", error);
+        toast.error("Failed to upload image. Try again.");
+    }
+};
+ 
 
   const triggerFileInput = () => {
     fileInputRef.current.click();
@@ -139,21 +177,26 @@ export default function Profile() {
     setIsEditable((prev) => !prev);
   };
 
-  const handleUpdateUserInfo = async () => {
+  const handleUpdateUserInfo = async (newImageUrl = profileImage) => {
+    // console.log("Image for update:", newImageUrl);
+
     const updatedInfo = {
         ...formData,
         interests: selectedFilters,
+        image: newImageUrl,
         password: user?.password,
     };
 
-    // Check if formData has changed
+    // console.log("Updated Info:", updatedInfo);
+
+    // Check if formData has changed (ensure new image is detected)
     const hasChanged = Object.keys(updatedInfo).some(
         (key) => updatedInfo[key] !== user[key]
     );
 
     if (!hasChanged) {
-        toast.info("No changes made."); // Display toast if no changes
-        return; // Exit the function early
+        toast.info("No changes made.");
+        return;
     }
 
     try {
@@ -168,20 +211,24 @@ export default function Profile() {
                 interests: selectedFilters, 
             }));
             setSelectedFilters(response.data.interests || []);
+            setProfileImage(response.data.image || newImageUrl);
             toast.success("Profile updated successfully.");
         }
     } catch (err) {
-        console.log("Failed to update profile. Please try again.");
-        toast.error("Failed to update profile. Please try again.");
+        console.error("Update failed:", err?.response?.data || err.message);
+        const errorMessage = err?.response?.data?.response || "Failed to update profile. Please try again.";
+        toast.error(errorMessage);
     } finally {
         fetchUserDetails();
     }
 };
 
+
+
 const fetchUserDetails = async () => {
   try {
     if (user._id) {
-      axios.post(baseUrl + `/api/user/getuser/?userid=${user._id}`).then((result) => {
+      axios.get(baseUrl + `/api/user/getuser/${user._id}`).then((result) => {
         if (result.status === 200) {
           const userDetails = result.data.response
           dispatch(login(userDetails))
@@ -202,7 +249,7 @@ const toggleSecurityChange=()=>{
 }
 
   return (
-    <div className="flex flex-col lg:mt-10 lg:flex-row min-h-fit bg-gray-100">
+    <div className="flex flex-col mt-10 lg:flex-row min-h-fit bg-gray-100">
       {/* Sidebar */}
       <ProfileSidebar />
       {/* Main content */}
@@ -230,35 +277,35 @@ const toggleSecurityChange=()=>{
             {/* User Profile Card */}
             <Card className="bg-white hover:bg-blue-50 transition-colors duration-200 py-12 px-16 rounded-3xl sm:col-span-2 lg:col-span-2">
               <div className="flex flex-col justify-center text-center items-center">
-                <div className="relative">
-                  <img
-                    src={profileImage}
-                    alt="User avatar"
-                    className="w-24 h-24 rounded-full object-cover"
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute bottom-0 right-0 bg-white rounded-full p-1 shadow-md"
-                    onClick={triggerFileInput}
-                    disabled={!isEditable}
-                  >
-                    <Pen className="w-4 h-4" />
-                  </Button>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={change}
-                    accept="image/jpeg;image/png"
-                    className="hidden"
-                    disabled={!isEditable}
-                  />
-                </div>
+              <div className="relative">
+        <img
+            src={user?.image || profileImage}
+            alt="User avatar"
+            className="w-24 h-24 rounded-full object-cover"
+        />
+        <Button
+            variant="ghost"
+            size="icon"
+            className="absolute bottom-0 right-0 bg-white rounded-full p-1 shadow-md"
+            onClick={triggerFileInput}
+            disabled={!isEditable}
+        >
+            <Pen className="w-4 h-4" />
+        </Button>
+        <input
+            type="file"
+            ref={fileInputRef}
+            onChange={change}
+            accept="image/jpeg,image/png"
+            className="hidden"
+            disabled={!isEditable}
+        />
+    </div>
                 <div className="mt-2">
                   <CardTitle className="text-lg text-gray-700">
                       {user?.firstname}
                   </CardTitle>
-                  <p className="text-sm text-gray-500">+91{user?.contact || "907599****"}</p>
+                  <p className="text-sm text-gray-500">+91{user?.contact || ""}</p>
                 </div>
               </div>
             </Card>
@@ -395,25 +442,25 @@ const toggleSecurityChange=()=>{
                     <SelectContent className="bg-white">
                       <SelectItem
                         className="hover:bg-gray-100 cursor-pointer"
-                        value="1st year"
+                        value="1st"
                       >
                         1st year
                       </SelectItem>
                       <SelectItem
                         className="hover:bg-gray-100 cursor-pointer"
-                        value="2nd year"
+                        value="2nd"
                       >
                         2nd year
                       </SelectItem>
                       <SelectItem
                         className="hover:bg-gray-100 cursor-pointer"
-                        value="3rd year"
+                        value="3rd"
                       >
                         3rd year
                       </SelectItem>
                       <SelectItem
                         className="hover:bg-gray-100 cursor-pointer"
-                        value="4th year"
+                        value="4th"
                       >
                         4th year
                       </SelectItem>

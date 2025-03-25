@@ -5,81 +5,58 @@ import { useEffect } from "react";
 
 const teacherCommittee = [
   {
-    name: "Prof. C.U.Chauhan",
-    role: "Head of Department",
-    image: "chauhansirphoto.jpg",
-    initials: "CUC",
-  },
-  {
-    name: "Prof. S.W.Shende",
-    role: "Assistant Professor",
-    image: "shendesirphoto.jpg",
-    initials: "SWS",
-  },
-  {
-    name: "Prof. R.K.Sahare",
-    role: "Assistant Professor",
-    image: "saharemamphoto.jpg",
-    initials: "RKS",
-  },
-  {
-    name: "Prof. Jayanti Choubey",
-    role: "Assistant Professor",
+    name: "Prof. Sharana T.M. Zaheer",
+    role: "EESA Faculty Head",
     image: "/placeholder.svg?height=100&width=100",
-    initials: "JC",
+    initials: "STZ",
   },
   {
-    name: "Prof. Suraj Bankar",
-    role: "Assistant Professor",
+    name: "Prof. T.F. More",
+    role: "Head of Electrical Engineering Department",
     image: "/placeholder.svg?height=100&width=100",
-    initials: "SSB",
+    initials: "TFM",
   },
 ];
 
 const studentCommittee = [
   {
-    name: "Mr. Ahmad Raza Khan",
+    name: "Mr. Pranay Ingale",
     role: "President",
-    image: "ahmad.jpg",
-    initials: "AP",
+    image: "/placeholder.svg?height=100&width=100",
+    initials: "PI",
   },
   {
-    name: "Mr. Mohammad Hasan Sheikh",
-    role: "Vice President",
-    image: "hasan.jpg",
-    initials: "NS",
+    name: "Mr. Aman Gadekar",
+    role: "Vice-President",
+    image: "/placeholder.svg?height=100&width=100",
+    initials: "AG",
   },
   {
-    name: "Mr. Sankshep Sambhoj",
-    role: "Sports Secretary (Boys)",
-    image: "sanshep.jpg",
-    initials: "RS",
-  },
-  {
-    name: "Ms. Janvi Mohurle",
-    role: "Sports Secretary (Girls)",
-    image: "janvi.jpg",
-    initials: "RS",
-  },
-  {
-    name: "Mr. Aditya Nikode",
-    role: "Cultural Secretary (Boys)",
-    image: "aditya.jpg",
-    initials: "AD",
-  },
-  {
-    name: "Ms. Avni Gajbhiye",
-    role: "Cultural Secretary (Girls)",
-    image: "avniphoto.jpg",
-    initials: "AD",
-  },
-  {
-    name: "Mr. Alok Kumar Vishwakarma",
+    name: "Mr. Nikhil Dhawale",
     role: "Treasurer",
-    image: "aalokkumar.jpg",
-    initials: "KM",
+    image: "/placeholder.svg?height=100&width=100",
+    initials: "ND",
+  },
+  {
+    name: "Mr. Sujit Dhore",
+    role: "Secretary",
+    image: "/placeholder.svg?height=100&width=100",
+    initials: "SD",
+  },
+  {
+    name: "Miss Sharayu Tichkule",
+    role: "Ladies Representative",
+    image: "/placeholder.svg?height=100&width=100",
+    initials: "ST",
+  },
+  {
+    name: "Miss Shanjivini Shetye",
+    role: "Ladies Representative",
+    image: "/placeholder.svg?height=100&width=100",
+    initials: "SS",
   },
 ];
+
 
 const MotionCard = motion(Card);
 
@@ -131,7 +108,7 @@ function CommitteeSection({ title, members }) {
   );
 }
 
-export default function CSECommittee() {
+export default function ElectricalCommittee() {
   useEffect(() => {
     window.scrollTo(0, 0); // Scroll to the top
   }, []);
@@ -144,7 +121,7 @@ export default function CSECommittee() {
         className="bg-cover bg-center h-[60vh] flex items-center justify-center relative"
         style={{
           backgroundImage:
-            "url('cseTeacherCommittee.jpg')",
+            "url('electricalTeacherCommittee.jpg')",
         }}
       >
         <div className="absolute inset-0 bg-black opacity-60"></div>
@@ -155,7 +132,7 @@ export default function CSECommittee() {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white mb-4"
           >
-            CSE Department Committee
+            Electrical Department Committee
           </motion.h1>
           <motion.p
             initial={{ y: 50 }}
@@ -163,7 +140,7 @@ export default function CSECommittee() {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="mt-4 text-xl sm:text-2xl text-blue-100 max-w-3xl mx-auto"
           >
-            Meet the dedicated team behind our Computer Science & Engineering
+            Meet the dedicated team behind our Electrical Engineering
             department
           </motion.p>
         </div>
@@ -176,33 +153,33 @@ export default function CSECommittee() {
           className="mt-16 px-4"
         >
           <h2 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-6 text-center">
-            ACSES Committee
+            EESA Committee
           </h2>
           <Card className="bg-white border border-blue-100 p-6 shadow-xl">
             <h3 className="text-2xl font-semibold text-gray-800 mb-4">
-              About ACSES
+              About EESA
             </h3>
             <p className="text-gray-600 mb-4">
-              The Association of Computer Science and Engineering Students
-              (ACSES) is the organizing committee of the CSE department. ACSES
-              plays a crucial role in fostering a vibrant academic and
-              extracurricular environment for computer science students.
+              The Electrical Engineering Students' Association (EESA) is the
+              organizing committee of the Electrical Engineering department.
+              EESA plays a crucial role in promoting academic excellence and
+              extracurricular engagement for electrical engineering students.
             </p>
             <h4 className="text-xl font-semibold text-gray-800 mb-2">
               Key Responsibilities:
             </h4>
             <ul className="list-disc list-inside text-gray-600 space-y-2">
-              <li>Organizing technical workshops and seminars</li>
-              <li>Coordinating department events and competitions</li>
-              <li>Facilitating industry-academia interactions</li>
-              <li>Promoting research and innovation among students</li>
-              <li>Managing student clubs and interest groups</li>
+              <li>Hosting industrial visits and technical workshops</li>
+              <li>Organizing academic competitions and exhibitions</li>
+              <li>Facilitating student-industry networking opportunities</li>
+              <li>Encouraging research in electrical engineering</li>
+              <li>Managing department-level events and projects</li>
             </ul>
           </Card>
         </motion.section>
         <CommitteeSection title="Faculty Members" members={teacherCommittee} />
         <CommitteeSection
-          title="ACSES Committee Members"
+          title="EESA Committee Members"
           members={studentCommittee}
         />
         <motion.section
@@ -212,30 +189,27 @@ export default function CSECommittee() {
           className="mt-16 px-4"
         >
           <h2 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-6 text-center">
-            Bits & Bytes Club
+            Innovate Club
           </h2>
           <Card className="bg-white border border-blue-100 p-6 shadow-xl">
             <h3 className="text-2xl font-semibold text-gray-800 mb-4">
-              About Bits & Bytes
+              About Innovate Club
             </h3>
             <p className="text-gray-600 mb-4">
-              The Bits & Bytes Club is the tech-savvy student-run club under the
-              CSE department. It encourages innovation, coding, and
-              problem-solving among students, helping them gain practical
-              experience and build real-world skills.
+              The Innovate Club is a student-driven initiative under the
+              Electrical Engineering department. It inspires creativity and
+              technical innovation, empowering students to design and develop
+              cutting-edge solutions.
             </p>
             <h4 className="text-xl font-semibold text-gray-800 mb-2">
               Key Responsibilities:
             </h4>
             <ul className="list-disc list-inside text-gray-600 space-y-2">
-              <li>Hosting coding challenges and hackathons</li>
-              <li>Conducting peer-to-peer coding sessions</li>
-              <li>Organizing technical talks and guest lectures</li>
-              <li>Promoting collaborative software development projects</li>
-              <li>
-                Encouraging participation in national and international coding
-                competitions
-              </li>
+              <li>Conducting hands-on technical workshops</li>
+              <li>Encouraging collaborative projects and research</li>
+              <li>Organizing hackathons and innovation challenges</li>
+              <li>Facilitating guest lectures and tech talks</li>
+              <li>Promoting participation in national-level competitions</li>
             </ul>
           </Card>
         </motion.section>

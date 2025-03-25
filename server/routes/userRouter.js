@@ -3,6 +3,9 @@ const {registerUser,loginUser, getUserDetails,
     userUpdate, updateUserRole, addOrganisedEvent, deleteUser,
     googleLogin,
     getUsersByName,
+    getParticipants,
+    getUserByBranch,
+    getAllParticipants,
     // addMyEvent
 } 
     = require('../controller/userController')
@@ -12,10 +15,13 @@ const checkTokenExpiry = require('../middlewares/check-token-expiry')
 const router = express.Router()
 
 router.post('/register',checkTokenExpiry,registerUser)
-router.post('/login', loginUser)
+router.post('/login',checkTokenExpiry, loginUser)
 router.post('/google', googleLogin)
-router.post('/getuser', getUserDetails)
+router.get('/getuser/:userid', getUserDetails)
 router.post('/getallusers', getUsersByName)
+router.get('/getuserbybranch', getUserByBranch)
+router.post('/get-participants/:eventId', getParticipants)
+router.get('/get-allparticipants/:eventId', getAllParticipants)
 router.post('/update/:id', userUpdate)
 router.post('/delete', deleteUser)
 router.post("/updateRole", updateUserRole);

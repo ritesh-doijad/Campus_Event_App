@@ -1,11 +1,8 @@
-"use client";
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -204,12 +201,6 @@ const ParticipantCard = ({ user, onStatusChange, event }) => {
                     {!isGroupEvent && user?.response.firstname}{" "}
                     {!isGroupEvent && user?.response.lastname}
                   </CardTitle>
-                  {/* <p className="text-sm text-gray-600">
-                  Price:{" "}
-                  <span className="font-medium text-gray-800">
-                    ${ticket.price.toFixed(2)}
-                  </span>
-                </p> */}
                 </CardHeader>
               </div>
 
@@ -273,8 +264,8 @@ export default function TicketStatusChangingPage() {
   // Fetch user information for a given userId
   const fetchUserInfo = async (userId) => {
     try {
-      const response = await axios.post(
-        `${baseUrl}/api/user/getuser/?userid=${userId}`
+      const response = await axios.get(
+        `${baseUrl}/api/user/getuser/${userId}`
       );
       return response.data;
     } catch (error) {
@@ -345,7 +336,7 @@ export default function TicketStatusChangingPage() {
 
         // API call for individual event
         response = await axios.post(
-          "http://localhost:3000/api/event/update-payment-status",
+          `${baseUrl}/api/event/update-payment-status`,
           individualPayload
         );
       } else {
@@ -356,18 +347,18 @@ export default function TicketStatusChangingPage() {
           newStatus: newStatus,
         };
 
-        console.log("is is group groupPayload:", groupPayload);
+        // console.log("is is group groupPayload:", groupPayload);
 
         // API call for group event
         response = await axios.post(
-          "http://localhost:3000/api/event/update-group-payment-status",
+          `${baseUrl}/api/event/update-group-payment-status`,
           groupPayload
         );
       }
-      console.log("this is group consolin after axios call",response)
+      // console.log("this is group consolin after axios call",response)
       if (response.status === 200) {
         setChange((prev) => !prev); // Trigger re-filtering
-        console.log("Payment status updated successfully:", response.data);
+        // console.log("Payment status updated successfully:", response.data);
       } else {
         console.error("Failed to update payment status:", response.data);
       }
@@ -440,20 +431,24 @@ export default function TicketStatusChangingPage() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            {participantDetails.map((user) => {
-              const key = isGroupEvent
-                ? `${user.user.response._id}-${user.groupName}`
-                : `${user.response._id}-${user.response.firstname}`;
+            {participantDetails.length > 0 ? (
+              participantDetails.map((user) => {
+                const key = isGroupEvent
+                  ? `${user.user.response._id}-${user.groupName}`
+                  : `${user.response._id}-${user.response.firstname}`;
 
-              return (
-                <ParticipantCard
-                  key={key}
-                  user={user}
-                  onStatusChange={handleStatusChange}
-                  event={event}
-                />
-              );
-            })}
+                return (
+                  <ParticipantCard
+                    key={key}
+                    user={user}
+                    onStatusChange={handleStatusChange}
+                    event={event}
+                  />
+                );
+              })
+            ) : (
+              <div>Nothing Available Here</div>
+            )}
           </motion.div>
         </AnimatePresence>
       </div>

@@ -21,7 +21,7 @@ function useSearchUsers(searchTerm) {
             search: term,
           });
           setData(response.data.response);
-          console.log(response.data.response);
+          // console.log(response.data.response);
         } catch (err) {
           console.error(err);
         } finally {
@@ -108,7 +108,7 @@ const SelectorPrac = ({ setValue,selector }) => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Select Coordinators"
-            className="flex h-11 w-[280px] max-w-[330px] rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-11 w-[250px] md:w-[280px] max-w-[330px] rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
             onFocus={() => setMenuOpen(true)}
             onBlur={() => setMenuOpen(false)}
           />
@@ -120,7 +120,7 @@ const SelectorPrac = ({ setValue,selector }) => {
         <div className="flex justify-center items-center" >
             <VscLoading className="text-gray-500 animate-spin-slow text-2xl text-bold" />
         </div > :  (
-          <div className="card absolute w-full max-h-40 mt-2 p-1 flex overflow-y-auto scrollbar-thin scrollbar-track-slate-50 scrollbar-thumb-slate-200 bg-white rounded-lg">
+          <div className="card absolute z-50 w-full max-h-40 mt-2 p-1 flex overflow-y-auto scrollbar-thin scrollbar-track-slate-50 scrollbar-thumb-slate-200 bg-white rounded-lg">
             <ul className="w-full">
               {filteredTags.length ? (
                 filteredTags.map((tag) => (
@@ -138,7 +138,7 @@ const SelectorPrac = ({ setValue,selector }) => {
                     {tag.firstname} {tag.lastname}
                         </p>
                         <h3 className="text-xs text-white flex gap-2" >
-                            <div className="bg-purple-600 p-1 rounded-3xl" >{tag.yearOfStudy??"N/A"}</div>
+                            <div className="bg-purple-600 p-1 rounded-3xl" >{tag.yearOfStudy??"N/A"} year</div>
                             <div className="bg-indigo-600 p-1 rounded-3xl"  >{tag.branch??"N/A"}</div>
                              
                              </h3>
