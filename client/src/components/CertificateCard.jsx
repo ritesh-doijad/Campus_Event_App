@@ -190,7 +190,11 @@ export default function CertificateCard({ event }) {
                     >
                       {field.value
                         .replace("{participant.name}", `${user.firstname} ${user.lastname}`)
-                        .replace("{certificateNumber}", generateCertificateNumber())}
+                        .replace("{certificateNumber}", generateCertificateNumber())
+                        .replace("{participant.yearOfStudy}",`${user.yearOfStudy}`)
+                        .replace("{participant.branch}",`${user.branch}`)
+                        }
+                        
                     </div>
                   )
                 })}

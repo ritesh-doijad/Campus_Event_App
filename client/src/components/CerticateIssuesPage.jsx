@@ -203,6 +203,9 @@ export default function CertificateTemplateUploader({ event }) {
     try {
       setIsLoading(true);
 
+      // Filter only enabled fields
+      const enabledFields = textElements.filter((el) => el.enabled);
+
       console.log(
         "Event Certificate data: ",
         event._id,
@@ -213,7 +216,7 @@ export default function CertificateTemplateUploader({ event }) {
       await axios.post(`${baseUrl}/api/event/save-certificate-template`, {
         eventId: event._id,
         backgroundImage: template,
-        fields: textElements,
+        fields: enabledFields,
       });
 
       toast({
@@ -550,7 +553,13 @@ export default function CertificateTemplateUploader({ event }) {
                               fontSize: `${el.size}px`,
                               color: el.color,
                               textAlign: "center",
-                              fontWeight: ["name", "yearOfStudy", "branch"].includes(el.id) ? "bold" : "normal",
+                              fontWeight: [
+                                "name",
+                                "yearOfStudy",
+                                "branch",
+                              ].includes(el.id)
+                                ? "bold"
+                                : "normal",
                               textShadow: "0 0 1px rgba(255,255,255,0.5)",
                             }}
                           >

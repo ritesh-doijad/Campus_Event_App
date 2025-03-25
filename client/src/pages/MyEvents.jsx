@@ -43,7 +43,13 @@ export default function Component() {
         return null;
       }).filter(event => event !== null);
       setAllEvents(combinedDetails);
-      setDisplayedEvents(combinedDetails.filter(event => event.paymentStatus === "Confirmed"));
+      setDisplayedEvents(
+        allEvents.filter(event => 
+          event.paymentStatus === statusFilter && 
+          !(statusFilter === "Confirmed" && event.isCertificateEnabled === true)
+        )
+      );
+      
       setLoading(false);
     }
   }, [user, myActiveTickets]);
@@ -62,7 +68,12 @@ export default function Component() {
       setIsSliding(true);
 
       setTimeout(() => {
-        setDisplayedEvents(allEvents.filter(event => event.paymentStatus === statusFilter));
+        setDisplayedEvents(
+          allEvents.filter(event => 
+            event.paymentStatus === statusFilter && 
+            !(statusFilter === "Confirmed" && event.isCertificateEnabled === true)
+          )
+        ); 
         setIsSliding(false);
         setPreviousFilter(statusFilter);
       }, 100);
