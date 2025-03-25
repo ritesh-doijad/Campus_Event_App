@@ -10,7 +10,7 @@ function VerifyEmail() {
 
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
-    const token = queryParams.get("token");
+    const token = queryParams.get("token"); 
 
     if (token) {
       axios.get( baseUrl+ `/verify-email?token=${token}`).then((response) => {
